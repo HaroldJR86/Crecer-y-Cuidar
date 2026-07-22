@@ -1,0 +1,1914 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Granja de Supervivencia - Mid Game</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #2e7d32;
+            color: #333;
+            margin: 0;
+            padding: 80px 20px 20px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        #tutorial-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: rgba(0, 0, 0, 0.75);
+            z-index: 90;
+            pointer-events: none;
+            display: none;
+            transition: opacity 0.3s ease;
+        }
+
+        #tutorial-overlay.active {
+            display: block;
+            pointer-events: auto;
+        }
+
+        .tutorial-highlight {
+            position: relative !important;
+            z-index: 101 !important;
+            box-shadow: 0 0 25px 8px #ffeb3b, 0 0 50px rgba(255, 235, 59, 0.8) !important;
+            border-color: #ffeb3b !important;
+            animation: focusGlow 1.5s infinite alternate;
+            pointer-events: auto !important;
+        }
+
+        @keyframes focusGlow {
+            from { box-shadow: 0 0 15px 5px #ffeb3b; }
+            to { box-shadow: 0 0 35px 12px #ffee58; }
+        }
+
+        #tutorial-box {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 900px;
+            background-color: #1976d2;
+            color: white;
+            padding: 14px 20px 38px 20px;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            font-size: 1.05em;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            z-index: 102;
+            border: 2px solid #64b5f6;
+            border-top: none;
+        }
+
+        .btn-skip-tutorial {
+            position: absolute;
+            bottom: 8px;
+            right: 12px;
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn-skip-tutorial:hover { background-color: #b71c1c; }
+        .btn-skip-tutorial:active { transform: scale(0.95); }
+
+        #game-container {
+            width: 900px;
+            background-color: #8d6e63;
+            border: 4px solid #4e342e;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        }
+
+        #hud {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #fff8e1;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+            border: 2px solid #ffe082;
+        }
+
+        .btn-sleep {
+            background-color: #3f51b5;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn-sleep:hover { background-color: #303f9f; }
+        .btn-sleep:active { transform: scale(0.95); }
+
+        #main-area {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        #farm-sections {
+            flex: 1.8;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .farm-grid {
+            background-color: #5d4037;
+            border-radius: 8px;
+            padding: 12px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            min-height: 120px;
+        }
+
+        .grid-title {
+            color: #fff;
+            font-size: 0.9em;
+            margin: 0 0 5px 0;
+            grid-column: span 3;
+            text-align: center;
+            background-color: #3e2723;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .plot {
+            background-color: #795548;
+            border: 3px dashed #a1887f;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            color: #fff;
+            text-align: center;
+            min-height: 80px;
+        }
+
+        .plot.wheat-plot {
+            background-color: #8d6e63;
+            border-color: #d7ccc8;
+        }
+
+        .plot.fertilized {
+            border: 3px solid #7cb342;
+            box-shadow: inset 0 0 10px #558b2f;
+        }
+
+        .plot:hover {
+            border-color: #fff;
+            transform: scale(1.02);
+        }
+
+        .plot.empty-slot {
+            background-color: rgba(0,0,0,0.1);
+            border: 2px dashed #8d6e63;
+            cursor: default;
+        }
+
+        #pen-area {
+            flex: 1.2;
+            background-color: #a1887f;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 2px solid #4e342e;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .animals-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .animal-card {
+            background-color: #fff8e1;
+            border: 2px solid #fbc02d;
+            border-radius: 8px;
+            width: 100%;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+            transition: transform 0.1s, border-color 0.2s;
+        }
+
+        .animal-card:hover {
+            border-color: #f57f17;
+            transform: scale(1.02);
+        }
+
+        .animal-card:active {
+            transform: scale(0.98);
+        }
+
+        .animal-avatar { font-size: 2em; }
+
+        .animal-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .produce-icon {
+            font-size: 1.6em;
+            animation: bounce 1s infinite alternate;
+        }
+
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-5px); }
+        }
+
+        .stat-bar-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+            border: 1px solid #9e9e9e;
+            margin-top: 2px;
+        }
+
+        .hunger-bar {
+            height: 100%;
+            background-color: #4caf50;
+            width: 100%;
+            transition: width 0.1s linear, background-color 0.3s;
+        }
+
+        .thirst-bar {
+            height: 100%;
+            background-color: #0288d1;
+            width: 100%;
+            transition: width 0.1s linear, background-color 0.3s;
+        }
+
+        #sea-section {
+            background-color: #0288d1;
+            border: 3px solid #01579b;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+            color: white;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #sea-bucket-btn {
+            background-color: #0277bd;
+            border: 2px solid #e0f7fa;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 0 4px 0 #01579b;
+        }
+
+        #sea-bucket-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #01579b;
+        }
+
+        #evaporator-zone {
+            flex: 1;
+            height: 130px;
+            background-color: #01579b;
+            border-radius: 8px;
+            border: 2px dashed #81d4fa;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .steam-cloud {
+            position: absolute;
+            font-size: 2em;
+            cursor: pointer;
+            animation: floatUp 2.2s linear forwards;
+            z-index: 10;
+        }
+
+        @keyframes floatUp {
+            0% { bottom: 0px; opacity: 1; transform: scale(0.7); }
+            100% { bottom: 140px; opacity: 0; transform: scale(1.3); }
+        }
+
+        .fresh-water-drop {
+            font-size: 2.5em;
+            cursor: pointer;
+            animation: pulse 1s infinite;
+        }
+
+        #shop-inventory {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background-color: #fff8e1;
+            border-radius: 8px;
+            padding: 15px;
+            border: 2px solid #ffe082;
+        }
+
+        .panel h3 {
+            margin-top: 0;
+            color: #5d4037;
+            border-bottom: 2px solid #ffe082;
+            padding-bottom: 5px;
+        }
+
+        .btn {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+            margin: 4px 0;
+            width: 100%;
+        }
+
+        .btn:disabled {
+            background-color: #bdbdbd;
+            cursor: not-allowed;
+        }
+
+        .btn:hover:not(:disabled) { background-color: #388e3c; }
+
+        .btn-upgrade { background-color: #0288d1; }
+        .btn-upgrade:hover:not(:disabled) { background-color: #01579b; }
+
+        .btn-expansion { background-color: #8e24aa; }
+        .btn-expansion:hover:not(:disabled) { background-color: #6a1b9a; }
+
+        .btn-sell {
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85em;
+            transition: background 0.2s;
+        }
+
+        .btn-sell:hover { background-color: #f57c00; }
+
+        .inventory-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin: 5px 0;
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .inventory-item.selected {
+            border-color: #4caf50;
+            background-color: #e8f5e9;
+            font-weight: bold;
+        }
+
+        .crop-stage { font-size: 2em; }
+
+        #overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: black; opacity: 0;
+            pointer-events: none; transition: opacity 0.5s ease-in-out;
+            z-index: 999;
+        }
+
+        #overlay.active { opacity: 1; pointer-events: all; }
+    </style>
+</head>
+<body>
+
+<div id="overlay"></div>
+
+<div id="tutorial-overlay" class="active"></div>
+
+<div id="tutorial-box">
+    <span id="tutorial-text">Cargando tutorial...</span>
+    <button class="btn-skip-tutorial" onclick="skipTutorial()">Saltar Tutorial ✖</button>
+</div>
+
+<div id="game-container">
+    <div id="hud">
+        <div>Día: <span id="day-display">1</span></div>
+        <div>Siguiente día en: <span id="timer-display">120</span>s</div>
+        <button class="btn-sleep" id="btn-sleep" onclick="sleepAndSkipDay()">🌙 Dormir (Skip Day)</button>
+        <div>Dinero: $<span id="money-display">500</span></div>
+    </div>
+
+    <div id="main-area">
+        <div id="farm-sections">
+            <div class="farm-grid" id="corn-grid">
+                <div class="grid-title">🌽 Campo de Maíz</div>
+                <div class="plot empty-slot" id="plot-0">Vacío</div>
+                <div class="plot empty-slot" id="plot-1">Vacío</div>
+                <div class="plot empty-slot" id="plot-2">Vacío</div>
+            </div>
+
+            <div class="farm-grid" id="wheat-grid" style="display: none;">
+                <div class="grid-title">🌾 Campo de Trigo (Mid-Game)</div>
+                <div class="plot empty-slot" id="plot-wheat-0">Vacío</div>
+                <div class="plot empty-slot" id="plot-wheat-1">Vacío</div>
+                <div class="plot empty-slot" id="plot-wheat-2">Vacío</div>
+            </div>
+        </div>
+
+        <div id="pen-area">
+            <h3>Corral</h3>
+            <div class="animals-container" id="animals-list"></div>
+        </div>
+    </div>
+
+    <div id="sea-section">
+        <div id="sea-bucket-btn" onmousedown="startCollectingSeaWater()" onmouseup="stopCollectingSeaWater()" onmouseleave="stopCollectingSeaWater()">
+            🌊 Mantén presionado<br><small id="sea-status">para Cargar Agua Salada</small>
+        </div>
+        <div id="evaporator-zone">
+            <span id="evaporator-status" style="opacity: 0.8; font-size: 0.9em;">Estación de Desalinización</span>
+        </div>
+    </div>
+
+<div id="shop-inventory">
+        <div class="panel">
+            <h3>Tienda</h3>
+            <button class="btn" id="btn-buy-plot" onclick="buyPlot()">Comprar Parcela Maíz ($<span class="precio" data-base="200">200</span>)</button>
+            <button class="btn" id="btn-buy-seeds" onclick="buySeeds()">Semillas de Maíz ($<span class="precio" data-base="100">100</span> / 25u)</button>
+            <button class="btn" id="btn-buy-chick" onclick="buyChick()" disabled>Comprar Pollito ($<span class="precio" data-base="60">60</span>) - Día 3+</button>
+            <button class="btn btn-upgrade" id="btn-buy-worker" onclick="buyWaterWorker()">👴 Contratar Desalinizador ($<span class="precio" data-base="300">300</span>)</button>
+            
+            <button class="btn btn-expansion" id="btn-expand-farm" onclick="expandFarm()" style="display: none;">✨ Expandir Granja (¡GRATIS!)</button>
+            <button class="btn" id="btn-buy-wheat-plot" onclick="buyWheatPlot()" style="display: none;" disabled>Comprar Parcela Trigo ($<span class="precio" data-base="250">250</span>)</button>
+            <button class="btn" id="btn-buy-wheat-seeds" onclick="buyWheatSeeds()" style="display: none;">Semillas de Trigo ($<span class="precio" data-base="120">120</span> / 25u)</button>
+            <button class="btn" id="btn-buy-cow" onclick="buyCow()" style="display: none;">🐄 Comprar Vaca ($<span class="precio" data-base="200">200</span>)</button>
+            <button class="btn" id="btn-buy-pig" onclick="buyPig()" style="display: none;">🐖 Comprar Cerdo ($<span class="precio" data-base="350">350</span>)</button>
+
+            <button class="btn btn-upgrade" id="btn-buy-autoseed" onclick="buyAutoSeed()" style="display: none;">🌱 Comprar Autosiembra ($<span class="precio" data-base="300">300</span>)</button>
+            <button class="btn btn-upgrade" id="btn-buy-autofeed" onclick="buyAutoFeed()" style="display: none;">🌾 Comprar Autoalimentación ($<span class="precio" data-base="500">500</span>)</button>
+            <button class="btn btn-upgrade" id="btn-buy-autoharvest" onclick="buyAutoHarvest()" style="display: none;">🧑‍🌾 Comprar Autorecolección ($<span class="precio" data-base="600">600</span>)</button>
+            <button class="btn btn-upgrade" id="btn-buy-autowater" onclick="buyAutoWater()" style="display: none;">🚰 Comprar Bebedero Agua ($<span class="precio" data-base="650">650</span>)</button>
+            <button class="btn btn-upgrade" id="btn-buy-windmill" onclick="buyWindmill()" style="display: none;">🌬️ Comprar Molino ($<span class="precio" data-base="1200">1200</span>)</button>
+            <button class="btn btn-upgrade" id="btn-rebirth" onclick="hacerRebirth()" style="display: none;">
+    🔄 Hacer Rebirth ($<span class="precio" data-base="2000">2000</span>)
+</button>
+        </div>
+    </div>
+
+        <div class="panel" id="inventory-panel">
+            <h3>Inventario</h3>
+            <div id="inventory-list">
+                <p style="color: #888;">Vacío</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let money = 500;
+    let day = 1;
+    let dayTimer = 120;
+    
+    let cornPlots = []; 
+    let maxCornPlots = 3;
+
+    let hasFarmExpansion = false;
+    let wheatPlots = [];
+    let maxWheatPlots = 3;
+
+    let autoSeedBought = false;
+    let autoFeedBought = false;
+    let autoHarvestBought = false;
+    let autoWaterBought = false;
+    let windmillBought = false;
+
+    // Al inicio de tu script, cárgalo así:
+let rebirthLevel = parseInt(localStorage.getItem('rebirthLevel')) || 0; 
+// Ojo: si por defecto quieres que sin Rebirth sea 0, pon || 0. Si quieres que empiece en 1, asegúrate de cómo lo manejas.
+
+    let rebirthMultiplier = 1 + (rebirthLevel * 0.5);
+
+    let windmillTimer = 0;
+
+    let inventory = {
+        cornSeeds: 0,
+        cornUsages: [], 
+        wheatSeeds: 0,
+        wheatUsages: [],
+        hayCount: 0,
+        waterUsages: [], 
+        eggs: 0,
+        milk: 0
+    };
+
+    let waterWorkers = 0;
+    let workerCost = 300;
+    let workerTimer = 0;
+    const WORKER_INTERVAL = 40; 
+
+    let selectedTool = null;
+
+    let animals = [
+        { id: 1, type: 'hen', hunger: 100, thirst: 100, hasLaidEgg: false, age: 2 }
+    ];
+    let nextAnimalId = 2;
+
+    const BASE_HUNGER_PER_SECOND = 100 / 200; 
+
+    const cornNames = { 3: "🌽 Maíz Entero", 2: "🌽 Maíz a la Mitad", 1: "🌽 Maíz Casi Acabado" };
+    const wheatNames = { 3: "🌾 Trigo Entero", 2: "🌾 Trigo a la Mitad", 1: "🌾 Trigo Casi Acabado" };
+    const waterNames = { 3: "💧 Agua Dulce Lleno", 2: "💧 Agua Dulce a la Mitad", 1: "💧 Agua Dulce Casi Vacío" };
+
+    let tutorialStep = 0;
+    let tutorialSkipped = false;
+
+    const tutorialMessages = [
+        "⚠️ REGLA DE ORO: ¡Si un animal muere de hambre o sed, pierdes el juego! Haz clic para **Comprar una Parcela** ($200).",
+        "PASO 2: ¡Excelente! Ahora compra **Semillas de Maíz** en la Tienda ($100 / 25u).",
+        "PASO 3: Haz **clic sobre las semillas** en tu inventario para seleccionarlas.",
+        "PASO 4: Haz **clic sobre la Parcela** para plantarlas (necesitas 3 semillas).",
+        "PASO 5: **Espera a que el maíz crezca** (30s).",
+        "PASO 6: Haz **clic en la Parcela** para recolectar el maíz.",
+        "PASO 7: **¡HORA DEL AGUA!** Mantén presionado el botón azul '🌊 Mantén presionado' por 1.5s.",
+        "PASO 8: ¡Atrapa 15 nubes de vapor 💨 haciendo clic rápido sobre ellas!",
+        "PASO 9: Haz clic en la **Gota de Agua 💧** para guardarla en tu inventario.",
+        "PASO 10: Haz **clic en el Agua Dulce** en tu inventario para seleccionarla.",
+        "PASO 11: Ahora haz **clic sobre la Gallina** en el Corral para darle de beber.",
+        "PASO 12: Haz **clic en el Maíz Entero 🌽** de tu inventario para seleccionarlo.",
+        "PASO 13: Haz **clic sobre la Gallina** para darle de comer y llenar su barra de hambre.",
+        "PASO 14: Usa el botón **Dormir (Skip Day)** para saltar la noche de forma segura.",
+        "🎉 ¡Tutorial completado! Recuerda: junta 3 parcelas de maíz, 2 gallinas y 1 gallo para **DESBLOQUEAR LA EXPANSIÓN MID-GAME**."
+    ];
+
+function updateTextsPrices() {
+    // Busca todos los elementos que tengan la clase "precio"
+    let elementosPrecio = document.querySelectorAll('.precio');
+    
+    elementosPrecio.forEach(elemento => {
+        let precioBase = parseFloat(elemento.getAttribute('data-base'));
+        
+        // Aplicamos tu multiplicador de Rebirth (o la lógica que prefieras)
+        // Si el Rebirth ablanda los precios, usamos división; si los encarece o usa otra fórmula, la adaptas aquí:
+        let precioFinal = Math.floor(precioBase / (typeof rebirthMultiplier !== 'undefined' ? rebirthMultiplier : 1));
+        
+        // Actualizamos el número que ve el usuario en la pantalla
+        elemento.innerText = precioFinal;
+    });
+}
+
+function getModifiedPrice(basePrice) {
+    let multiplier = (typeof rebirthMultiplier !== 'undefined' ? rebirthMultiplier : 1);
+    return Math.floor(basePrice / multiplier);
+}
+
+    function skipTutorial() {
+        tutorialSkipped = true;
+        document.getElementById('tutorial-box').style.display = 'none';
+        document.getElementById('tutorial-overlay').classList.remove('active');
+        document.querySelectorAll('.tutorial-highlight').forEach(el => el.classList.remove('tutorial-highlight'));
+        document.body.style.paddingTop = "20px";
+    }
+
+// Función para calcular cuánto dinero real recibe el jugador al vender o recolectar algo
+function getModifiedEarnings(baseEarnings) {
+    let multiplier = (typeof rebirthMultiplier !== 'undefined' ? rebirthMultiplier : 1);
+    return Math.floor(baseEarnings * multiplier);
+}
+
+// Función para comprobar si debe aparecer el botón de Rebirth
+function checkRebirthUnlock() {
+    let rebirthBtn = document.getElementById('btn-rebirth');
+    if (!rebirthBtn) return;
+
+    // Condición: Día 15 o mayor + TODAS las mejoras y la expansión compradas
+    let conditionsMet = (
+        typeof day !== 'undefined' && day >= 15 &&
+        typeof hasFarmExpansion !== 'undefined' && hasFarmExpansion &&
+        typeof autoSeedBought !== 'undefined' && autoSeedBought &&
+        typeof autoFeedBought !== 'undefined' && autoFeedBought &&
+        typeof autoHarvestBought !== 'undefined' && autoHarvestBought &&
+        typeof autoWaterBought !== 'undefined' && autoWaterBought &&
+        typeof windmillBought !== 'undefined' && windmillBought
+    );
+
+    if (conditionsMet) {
+        rebirthBtn.style.display = 'block'; // Muestra el botón
+    } else {
+        rebirthBtn.style.display = 'none'; // Lo mantiene oculto
+    }
+}
+
+// La función que se ejecuta al pulsar el botón de Rebirth
+function hacerRebirth() {
+    let baseCost = 2000;
+    let currentCost = getModifiedPrice(baseCost); // Usa tu función de precios modificados
+
+    if (typeof money !== 'undefined' && money >= currentCost) {
+        money -= currentCost; // Resta el costo
+        
+        // Aumenta el nivel de Rebirth
+        let currentRebirths = parseInt(localStorage.getItem('rebirthLevel')) || 0;
+        localStorage.setItem('rebirthLevel', currentRebirths + 1);
+
+        alert("¡Rebirth exitoso! Tu granja asciende de nivel.");
+        location.reload(); // Recarga la página para aplicar los cambios de golpe
+    } else {
+        alert("¡No tienes suficiente dinero para hacer el Rebirth!");
+    }
+}
+
+    function updateTutorialFocus() {
+        if (tutorialSkipped) return;
+
+        const overlay = document.getElementById('tutorial-overlay');
+        document.querySelectorAll('.tutorial-highlight').forEach(el => el.classList.remove('tutorial-highlight'));
+
+        if (tutorialStep >= tutorialMessages.length - 1) {
+            overlay.classList.remove('active');
+            document.getElementById('tutorial-box').style.display = 'none';
+            document.body.style.paddingTop = "20px";
+            return;
+        }
+
+        overlay.classList.add('active');
+
+        let target = null;
+        if (tutorialStep === 0) target = document.getElementById('btn-buy-plot');
+        else if (tutorialStep === 1) target = document.getElementById('btn-buy-seeds');
+        else if (tutorialStep === 2) target = document.getElementById('inventory-panel');
+        else if (tutorialStep === 3) target = document.getElementById('plot-0');
+        else if (tutorialStep === 4) target = document.getElementById('plot-0');
+        else if (tutorialStep === 5) target = document.getElementById('plot-0');
+        else if (tutorialStep === 6) target = document.getElementById('sea-bucket-btn');
+        else if (tutorialStep === 7) target = document.getElementById('evaporator-zone');
+        else if (tutorialStep === 8) target = document.getElementById('evaporator-zone');
+        else if (tutorialStep === 9) target = document.getElementById('inventory-panel');
+        else if (tutorialStep === 10) target = document.getElementById('pen-area');
+        else if (tutorialStep === 11) target = document.getElementById('inventory-panel');
+        else if (tutorialStep === 12) target = document.getElementById('pen-area');
+        else if (tutorialStep === 13) target = document.getElementById('btn-sleep');
+
+        if (target) {
+            target.classList.add('tutorial-highlight');
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    function checkInventoryStacking() {
+        let fullCornIndices = [];
+        inventory.cornUsages.forEach((uses, index) => {
+            if (uses === 3) fullCornIndices.push(index);
+        });
+
+        if (fullCornIndices.length >= 3) {
+            for (let i = 2; i >= 0; i--) inventory.cornUsages.splice(fullCornIndices[i], 1);
+            inventory.cornUsages.unshift(9); 
+            selectedTool = null;
+        }
+
+        let fullWaterIndices = [];
+        inventory.waterUsages.forEach((uses, index) => {
+            if (uses === 3) fullWaterIndices.push(index);
+        });
+
+        if (fullWaterIndices.length >= 3) {
+            for (let i = 2; i >= 0; i--) inventory.waterUsages.splice(fullWaterIndices[i], 1);
+            inventory.waterUsages.unshift(9);
+            selectedTool = null;
+        }
+    }
+
+    function getHungerSpeed() {
+        const henCount = animals.filter(a => a.type === 'hen').length;
+        const reductionFactor = Math.max(0.4, 1 - ((henCount - 1) * 0.15));
+        return BASE_HUNGER_PER_SECOND * reductionFactor;
+    }
+
+    setInterval(() => {
+        dayTimer--;
+        if (dayTimer <= 0) advanceToNextDay();
+
+        if (waterWorkers > 0) {
+            workerTimer++;
+            if (workerTimer >= WORKER_INTERVAL) {
+                workerTimer = 0;
+                for (let i = 0; i < waterWorkers; i++) inventory.waterUsages.push(3);
+                checkInventoryStacking();
+                updateInventoryUI();
+            }
+        }
+
+        if (autoSeedBought) processAutoSeed();
+        if (autoHarvestBought) processAutoHarvest();
+
+        if (windmillBought && inventory.wheatUsages.length > 0) {
+            windmillTimer++;
+            if (windmillTimer >= 5) {
+                windmillTimer = 0;
+                inventory.wheatUsages[0]--;
+                inventory.hayCount++;
+                if (inventory.wheatUsages[0] <= 0) {
+                    inventory.wheatUsages.shift();
+                }
+                updateInventoryUI();
+            }
+        }
+
+        if (hasFarmExpansion) {
+            const hasCow = animals.some(a => a.type === 'cow');
+            const pigCount = animals.filter(a => a.type === 'pig').length;
+            
+            let fertChance = (hasCow ? 0.05 : 0) + (pigCount * 0.15);
+            if (fertChance > 0 && Math.random() < fertChance) {
+                applyRandomFertilizer();
+            }
+        }
+
+        updateHUD();
+    }, 1000);
+
+    function applyRandomFertilizer() {
+        let activePlots = [];
+        cornPlots.forEach(p => { if (p.state === 'growing' && !p.fertilized) activePlots.push(p); });
+        wheatPlots.forEach(p => { if (p.state === 'growing' && !p.fertilized) activePlots.push(p); });
+
+        if (activePlots.length > 0) {
+            let targetPlot = activePlots[Math.floor(Math.random() * activePlots.length)];
+            targetPlot.fertilized = true;
+            renderPlots();
+        }
+    }
+
+    /* CORRECCIÓN EN LA AUTOSIEMBRA */
+    function processAutoSeed() {
+        let changed = false;
+        cornPlots.forEach(plot => {
+            if (plot.state === 'empty' && inventory.cornSeeds >= 3) {
+                inventory.cornSeeds -= 3;
+                startCornGrowth(plot);
+                changed = true;
+            }
+        });
+
+        wheatPlots.forEach(plot => {
+            if (plot.state === 'empty' && inventory.wheatSeeds >= 3) {
+                inventory.wheatSeeds -= 3;
+                startWheatGrowth(plot);
+                changed = true;
+            }
+        });
+
+        if (changed) {
+            updateInventoryUI();
+            renderPlots();
+        }
+    }
+
+    function processAutoHarvest() {
+        cornPlots.forEach((plot, index) => {
+            if (plot.state === 'ready') interactCornPlot(index);
+        });
+
+        wheatPlots.forEach((plot, index) => {
+            if (plot.state === 'ready') interactWheatPlot(index);
+        });
+    }
+
+    setInterval(() => {
+        const baseSpeedPerTick = getHungerSpeed() / 10;
+        let anyDied = false;
+        let causeOfDeath = "";
+
+        animals.forEach(animal => {
+            let speedPerTick = baseSpeedPerTick;
+            
+            if (animal.type === 'rooster') speedPerTick = baseSpeedPerTick * 0.5;
+            else if (animal.type === 'cow') speedPerTick = baseSpeedPerTick / 2.5;
+            else if (animal.type === 'pig') speedPerTick = baseSpeedPerTick / 1.8;
+
+            animal.hunger -= speedPerTick;
+            animal.thirst -= speedPerTick;
+
+            if (autoFeedBought && animal.hunger < 50) {
+                if (animal.type === 'cow' && inventory.hayCount > 0) {
+                    inventory.hayCount--;
+                    animal.hunger = Math.min(100, animal.hunger + 40);
+                    updateInventoryUI();
+                } else if (animal.type === 'pig') {
+                    if (inventory.wheatUsages.length > 0) {
+                        inventory.wheatUsages[0]--;
+                        animal.hunger = Math.min(100, animal.hunger + 35);
+                        if (inventory.wheatUsages[0] <= 0) inventory.wheatUsages.shift();
+                        updateInventoryUI();
+                    } else if (inventory.cornUsages.length > 0) {
+                        inventory.cornUsages[0]--;
+                        animal.hunger = Math.min(100, animal.hunger + 30);
+                        if (inventory.cornUsages[0] <= 0) inventory.cornUsages.shift();
+                        updateInventoryUI();
+                    }
+                } else if (animal.type !== 'cow' && animal.type !== 'pig' && inventory.cornUsages.length > 0) {
+                    inventory.cornUsages[0]--;
+                    const hungerAmount = (animal.type === 'chick') ? 40 : 25;
+                    animal.hunger = Math.min(100, animal.hunger + hungerAmount);
+
+                    if (inventory.cornUsages[0] <= 0) inventory.cornUsages.shift();
+                    updateInventoryUI();
+                }
+            }
+
+            if (autoWaterBought && animal.thirst < 50 && inventory.waterUsages.length > 0) {
+                inventory.waterUsages[0]--;
+                animal.thirst = Math.min(100, animal.thirst + 33);
+
+                if (inventory.waterUsages[0] <= 0) inventory.waterUsages.shift();
+                updateInventoryUI();
+            }
+
+            if (animal.hunger <= 0) { animal.hunger = 0; anyDied = true; causeOfDeath = "muerto de hambre"; }
+            if (animal.thirst <= 0) { animal.thirst = 0; anyDied = true; causeOfDeath = "muerto de sed"; }
+            
+            const hungerBar = document.getElementById(`hunger-bar-${animal.id}`);
+            const hungerText = document.getElementById(`hunger-text-${animal.id}`);
+            const thirstBar = document.getElementById(`thirst-bar-${animal.id}`);
+            const thirstText = document.getElementById(`thirst-text-${animal.id}`);
+
+            if (hungerBar && hungerText) {
+                hungerBar.style.width = `${animal.hunger}%`;
+                hungerBar.style.backgroundColor = animal.hunger > 50 ? '#4caf50' : animal.hunger > 20 ? '#ff9800' : '#f44336';
+                hungerText.innerText = `Hambre: ${Math.round(animal.hunger)}%`;
+            }
+
+            if (thirstBar && thirstText) {
+                thirstBar.style.width = `${animal.thirst}%`;
+                thirstBar.style.backgroundColor = animal.thirst > 50 ? '#0288d1' : animal.thirst > 20 ? '#ff9800' : '#f44336';
+                thirstText.innerText = `Sed: ${Math.round(animal.thirst)}%`;
+            }
+        });
+
+        if (anyDied) {
+            alert(`¡Un animal ha ${causeOfDeath}! GAME OVER.`);
+            location.reload();
+        }
+    }, 100);
+
+    function sleepAndSkipDay() {
+        const overlay = document.getElementById('overlay');
+        overlay.classList.add('active'); 
+
+        setTimeout(() => {
+            const timeRemaining = dayTimer;
+            const baseCost = timeRemaining * getHungerSpeed();
+
+            let diedInNight = false;
+            let cause = "";
+
+            animals.forEach(animal => {
+                let cost = baseCost;
+                if (animal.type === 'rooster') cost = baseCost * 0.5;
+                else if (animal.type === 'cow') cost = baseCost / 2.5;
+                else if (animal.type === 'pig') cost = baseCost / 1.8;
+
+                animal.hunger -= cost;
+                animal.thirst -= cost;
+
+                if (animal.hunger <= 0) { diedInNight = true; cause = "hambre"; }
+                if (animal.thirst <= 0) { diedInNight = true; cause = "sed"; }
+            });
+
+            if (diedInNight) {
+                overlay.classList.remove('active');
+                alert(`¡Un animal no tenía suficiente cuidado y murió de ${cause} esta noche! GAME OVER.`);
+                location.reload();
+                return;
+            }
+
+            if (waterWorkers > 0) {
+                const autoWaterCycles = Math.floor(timeRemaining / WORKER_INTERVAL);
+                for (let i = 0; i < autoWaterCycles * waterWorkers; i++) inventory.waterUsages.push(3);
+                checkInventoryStacking();
+            }
+
+            const growthGained = timeRemaining * (100 / 30);
+            
+            cornPlots.forEach(plot => {
+                if (plot.state === 'growing') {
+                    let rate = plot.fertilized ? growthGained * 2 : growthGained;
+                    plot.progress += rate;
+                    if (plot.progress >= 100) {
+                        plot.progress = 100;
+                        plot.state = 'ready';
+                        plot.fertilized = false;
+                        if (plot.growInterval) clearInterval(plot.growInterval);
+                    }
+                }
+            });
+
+            wheatPlots.forEach(plot => {
+                if (plot.state === 'growing') {
+                    let rate = plot.fertilized ? growthGained * 2 : growthGained;
+                    plot.progress += rate;
+                    if (plot.progress >= 100) {
+                        plot.progress = 100;
+                        plot.state = 'ready';
+                        plot.fertilized = false;
+                        if (plot.growInterval) clearInterval(plot.growInterval);
+                    }
+                }
+            });
+
+            advanceToNextDay();
+            if (tutorialStep === 13) tutorialStep = 14;
+
+            renderPlots();
+            updateInventoryUI();
+            setTimeout(() => overlay.classList.remove('active'), 300);
+        }, 500);
+    }
+
+    function advanceToNextDay() {
+        dayTimer = 120;
+        day++;
+
+        const roosterCount = animals.filter(a => a.type === 'rooster').length;
+        let newChickensFromFertilization = 0;
+
+        let hensWithEggs = animals.filter(a => a.type === 'hen' && a.hasLaidEgg);
+        hensWithEggs.sort(() => Math.random() - 0.5);
+
+        let eggsToFertilize = Math.min(roosterCount, hensWithEggs.length);
+        for (let i = 0; i < eggsToFertilize; i++) {
+            hensWithEggs[i].hasLaidEgg = false;
+            newChickensFromFertilization++;
+        }
+
+        const eggChance = (day <= 3) ? 1.0 : 0.6;
+        animals.forEach(animal => {
+            if (animal.type === 'chick') {
+                animal.age++;
+                if (animal.age >= 2) animal.type = Math.random() < 0.5 ? 'hen' : 'rooster';
+            }
+            else if (animal.type === 'hen' && !animal.hasLaidEgg) {
+                if (Math.random() <= eggChance) animal.hasLaidEgg = true;
+            }
+            else if (animal.type === 'cow' && !animal.hasMilk) {
+                if (Math.random() <= 0.25) animal.hasMilk = true;
+            }
+        });
+
+        for (let i = 0; i < newChickensFromFertilization; i++) {
+            animals.push({ id: nextAnimalId++, type: 'chick', hunger: 100, thirst: 100, age: 0 });
+        }
+
+        updateHUD();
+        renderAnimalsStructure();
+    }
+
+    let seaHoldTimer = null;
+    let isEvaporating = false;
+    let steamQuestTimer = null;
+    let caughtClouds = 0;
+    let missedClouds = 0;
+    const TARGET_CLOUDS = 15;
+    const MAX_MISSED = 3;
+
+    function startCollectingSeaWater() {
+        if (isEvaporating) return;
+        document.getElementById('sea-status').innerText = "Cargando cubeta... (mantén)";
+        
+        seaHoldTimer = setTimeout(() => {
+            document.getElementById('sea-status').innerText = "¡Cubeta cargada!";
+            if (tutorialStep === 6) tutorialStep = 7;
+            updateHUD();
+            startSteamQuest();
+        }, 1500);
+    }
+
+    function stopCollectingSeaWater() {
+        if (seaHoldTimer) {
+            clearTimeout(seaHoldTimer);
+            seaHoldTimer = null;
+            if (!isEvaporating) document.getElementById('sea-status').innerText = "para Cargar Agua Salada";
+        }
+    }
+
+    function startSteamQuest() {
+        isEvaporating = true;
+        caughtClouds = 0;
+        missedClouds = 0;
+        updateQuestUI();
+
+        steamQuestTimer = setInterval(() => {
+            if (!isEvaporating) return;
+            spawnSteamCloud();
+        }, 800); 
+    }
+
+    function updateQuestUI() {
+        const zone = document.getElementById('evaporator-zone');
+        zone.innerHTML = `
+            <div style="font-size: 0.85em; font-weight: bold; margin-bottom: 5px;">♨️ ¡QUEST DE VAPOR EN PROCESO!</div>
+            <div style="font-size: 0.9em; color: #e0f7fa;">Atrapadas: <strong>${caughtClouds}/${TARGET_CLOUDS}</strong> | Escapadas: <strong>${missedClouds}/${MAX_MISSED}</strong></div>
+        `;
+    }
+
+    function spawnSteamCloud() {
+        const zone = document.getElementById('evaporator-zone');
+        const steam = document.createElement('div');
+        steam.className = 'steam-cloud';
+        steam.innerText = '💨';
+        steam.style.left = `${Math.random() * 75 + 10}%`;
+
+        steam.onpointerdown = (e) => {
+            e.stopPropagation();
+            steam.remove();
+            caughtClouds++;
+            updateQuestUI();
+            if (caughtClouds >= TARGET_CLOUDS) completeQuestSuccess();
+        };
+
+        steam.addEventListener('animationend', () => {
+            if (steam.parentNode) {
+                steam.remove();
+                missedClouds++;
+                updateQuestUI();
+                if (missedClouds >= MAX_MISSED) failQuest();
+            }
+        });
+
+        zone.appendChild(steam);
+    }
+
+    function completeQuestSuccess() {
+        clearInterval(steamQuestTimer);
+        steamQuestTimer = null;
+        const zone = document.getElementById('evaporator-zone');
+        zone.innerHTML = '';
+
+        const drop = document.createElement('div');
+        drop.className = 'fresh-water-drop';
+        drop.innerText = '💧';
+        drop.title = '¡Misión Cumplida! Clic para recibir Agua Dulce (3 usos)';
+
+        if (tutorialStep === 7) tutorialStep = 8;
+        updateHUD();
+
+        drop.onclick = () => {
+            inventory.waterUsages.push(3);
+            checkInventoryStacking();
+            updateInventoryUI();
+            if (tutorialStep === 8) tutorialStep = 9;
+            resetEvaporator("¡Éxito! Agua Dulce obtenida.");
+        };
+
+        zone.appendChild(drop);
+    }
+
+    function failQuest() {
+        clearInterval(steamQuestTimer);
+        steamQuestTimer = null;
+        resetEvaporator("❌ ¡Fallaste! Demasiado vapor escapó.");
+    }
+
+    function resetEvaporator(msg) {
+        isEvaporating = false;
+        if (steamQuestTimer) clearInterval(steamQuestTimer);
+        document.getElementById('sea-status').innerText = "para Cargar Agua Salada";
+        updateEvaporatorText(msg);
+    }
+
+    function updateEvaporatorText(customMsg) {
+        if (isEvaporating) return;
+        const zone = document.getElementById('evaporator-zone');
+        let statusText = customMsg || "Estación de Desalinización";
+        
+        if (waterWorkers > 0) {
+            const timeLeft = WORKER_INTERVAL - workerTimer;
+            statusText = `👴 Empleados: <strong>${waterWorkers}</strong> | Agua en: <strong>${timeLeft}s</strong>`;
+        }
+
+        zone.innerHTML = `<span id="evaporator-status" style="opacity: 0.9; font-size: 0.9em;">${statusText}</span>`;
+    }
+
+    function checkExpansionUnlocked() {
+        const henCount = animals.filter(a => a.type === 'hen').length;
+        const roosterCount = animals.filter(a => a.type === 'rooster').length;
+        return (cornPlots.length >= 3 && henCount >= 2 && roosterCount >= 1);
+    }
+
+    function expandFarm() {
+        hasFarmExpansion = true;
+        document.getElementById('wheat-grid').style.display = 'grid';
+        document.getElementById('btn-expand-farm').style.display = 'none';
+        document.getElementById('btn-buy-wheat-plot').style.display = 'block';
+        document.getElementById('btn-buy-wheat-seeds').style.display = 'block';
+        document.getElementById('btn-buy-cow').style.display = 'block';
+        document.getElementById('btn-buy-pig').style.display = 'block';
+        document.getElementById('btn-buy-autoseed').style.display = 'block';
+        document.getElementById('btn-buy-autofeed').style.display = 'block';
+        document.getElementById('btn-buy-autoharvest').style.display = 'block';
+        document.getElementById('btn-buy-autowater').style.display = 'block';
+        document.getElementById('btn-buy-windmill').style.display = 'block';
+        
+        renderPlots();
+        updateHUD();
+    }
+
+    function buyAutoSeed() {
+        if (money >= getModifiedPrice(300) && !autoSeedBought) {
+            money -= getModifiedPrice(300);
+            autoSeedBought = true;
+            document.getElementById('btn-buy-autoseed').disabled = true;
+            document.getElementById('btn-buy-autoseed').innerText = "🌱 Autosiembra Activada";
+            updateHUD();
+        }
+    }
+
+    function buyAutoFeed() {
+        if (money >= getModifiedPrice(500) && !autoFeedBought) {
+            money -= getModifiedPrice(500);
+            autoFeedBought = true;
+            document.getElementById('btn-buy-autofeed').disabled = true;
+            document.getElementById('btn-buy-autofeed').innerText = "🌾 Autoalimentación Activada";
+            updateHUD();
+        }
+    }
+
+    function buyAutoHarvest() {
+        if (money >= getModifiedPrice(600) && !autoHarvestBought) {
+            money -= getModifiedPrice(600);
+            autoHarvestBought = true;
+            document.getElementById('btn-buy-autoharvest').disabled = true;
+            document.getElementById('btn-buy-autoharvest').innerText = "🧑‍🌾 Autorecolección Activada";
+            updateHUD();
+        }
+    }
+
+    function buyAutoWater() {
+        if (money >= getModifiedPrice(650) && !autoWaterBought) {
+            money -= getModifiedPrice(650);
+            autoWaterBought = true;
+            document.getElementById('btn-buy-autowater').disabled = true;
+            document.getElementById('btn-buy-autowater').innerText = "🚰 Bebedero Activado";
+            updateHUD();
+        }
+    }
+
+    function buyWindmill() {
+        if (money >= getModifiedPrice(1200) && !windmillBought) {
+            money -= getModifiedPrice(1200);
+            windmillBought = true;
+            document.getElementById('btn-buy-windmill').disabled = true;
+            document.getElementById('btn-buy-windmill').innerText = "🌬️ Molino Activado";
+            updateHUD();
+        }
+    }
+
+    function buyWheatPlot() {
+        if (money >= getModifiedPrice(250) && wheatPlots.length < maxWheatPlots) {
+            money -= getModifiedPrice(250);
+            wheatPlots.push({ state: 'empty', progress: 0, fertilized: false, growInterval: null });
+            renderPlots();
+            updateHUD();
+        }
+    }
+
+    function buyWheatSeeds() {
+        if (money >= getModifiedPrice(120)) {
+            money -= getModifiedPrice(120);
+            inventory.wheatSeeds += 25;
+            updateInventoryUI();
+            updateHUD();
+        }
+    }
+
+    function buyCow() {
+        if (money >= getModifiedPrice(200)) {
+            money -= getModifiedPrice(200);
+            animals.push({ id: nextAnimalId++, type: 'cow', hunger: 100, thirst: 100, hasMilk: false });
+            updateHUD();
+            renderAnimalsStructure();
+        }
+    }
+
+    function buyPig() {
+        if (money >= getModifiedPrice(350)) {
+            money -= getModifiedPrice(350);
+            animals.push({ id: nextAnimalId++, type: 'pig', hunger: 100, thirst: 100 });
+            updateHUD();
+            renderAnimalsStructure();
+        }
+    }
+
+    function buyWaterWorker() {
+        if (money >= getModifiedPrice(workerCost)) {
+            money -= getModifiedPrice(workerCost);
+            waterWorkers++;
+            workerCost = Math.round(workerCost * 1.5);
+            updateHUD();
+        }
+    }
+
+    function buyChick() {
+        if (day >= 3 && money >= getModifiedPrice(60)) {
+            money -= getModifiedPrice(60);
+            animals.push({ id: nextAnimalId++, type: 'chick', hunger: 100, thirst: 100, age: 0 });
+            updateHUD();
+            renderAnimalsStructure();
+        }
+    }
+
+    function buyPlot() {
+        if (money >= getModifiedPrice(200) && cornPlots.length < maxCornPlots) {
+            money -= getModifiedPrice(200);
+            cornPlots.push({ state: 'empty', progress: 0, fertilized: false, growInterval: null });
+            renderPlots();
+            if (tutorialStep === 0) tutorialStep = 1;
+            updateHUD();
+        }
+    }
+
+    function buySeeds() {
+        if (money >= getModifiedPrice(100)) {
+            money -= getModifiedPrice(100);
+            inventory.cornSeeds += 25;
+            if (tutorialStep === 1) tutorialStep = 2;
+            updateInventoryUI();
+            updateHUD();
+        }
+    }
+
+    function interactAnimal(animalId) {
+        const animal = animals.find(a => a.id === animalId);
+        if (!animal) return;
+
+        const isCornSelected = typeof selectedTool === 'number' && inventory.cornUsages[selectedTool] !== undefined;
+        const isWheatSelected = typeof selectedTool === 'string' && selectedTool.startsWith('wheat_');
+        const isWaterSelected = typeof selectedTool === 'string' && selectedTool.startsWith('w_');
+        const isHaySelected = selectedTool === 'hay';
+
+        if (animal.type === 'cow' && animal.hasMilk && selectedTool === null) {
+            animal.hasMilk = false;
+            inventory.milk++;
+            updateInventoryUI();
+            renderAnimalsStructure();
+            return;
+        }
+
+        if (animal.type === 'pig') {
+            if (isWheatSelected) {
+                let wheatIndex = parseInt(selectedTool.replace('wheat_', ''));
+                if (inventory.wheatUsages[wheatIndex] !== undefined) {
+                    inventory.wheatUsages[wheatIndex]--;
+                    animal.hunger = Math.min(100, animal.hunger + 35);
+
+                    if (inventory.wheatUsages[wheatIndex] <= 0) {
+                        inventory.wheatUsages.splice(wheatIndex, 1);
+                        selectedTool = null;
+                    }
+                    updateInventoryUI();
+                    updateHUD();
+                    return;
+                }
+            } else if (isCornSelected) {
+                let index = selectedTool;
+                inventory.cornUsages[index]--;
+                animal.hunger = Math.min(100, animal.hunger + 30);
+
+                if (inventory.cornUsages[index] <= 0) {
+                    inventory.cornUsages.splice(index, 1);
+                    selectedTool = null;
+                }
+                updateInventoryUI();
+                updateHUD();
+                return;
+            }
+        }
+
+        if (isCornSelected && animal.type !== 'cow' && animal.type !== 'pig') {
+            let index = selectedTool;
+            inventory.cornUsages[index]--;
+            const hungerAmount = (animal.type === 'chick') ? 40 : 25;
+            animal.hunger = Math.min(100, animal.hunger + hungerAmount);
+
+            if (inventory.cornUsages[index] <= 0) {
+                inventory.cornUsages.splice(index, 1);
+                selectedTool = null;
+            }
+
+            if (tutorialStep === 12) tutorialStep = 13;
+            updateInventoryUI();
+            updateHUD();
+        } 
+        else if (isHaySelected && animal.type === 'cow') {
+            if (inventory.hayCount > 0) {
+                inventory.hayCount--;
+                animal.hunger = Math.min(100, animal.hunger + 40);
+                if (inventory.hayCount <= 0) selectedTool = null;
+                updateInventoryUI();
+                updateHUD();
+            }
+        }
+        else if (isWaterSelected) {
+            let waterIndex = parseInt(selectedTool.replace('w_', ''));
+            if (inventory.waterUsages[waterIndex] !== undefined) {
+                inventory.waterUsages[waterIndex]--;
+                animal.thirst = Math.min(100, animal.thirst + 33);
+
+                if (inventory.waterUsages[waterIndex] <= 0) {
+                    inventory.waterUsages.splice(waterIndex, 1);
+                    selectedTool = null;
+                }
+
+                if (tutorialStep === 10) tutorialStep = 11;
+                updateInventoryUI();
+                updateHUD();
+            }
+        }
+        else if (animal.type === 'hen' && animal.hasLaidEgg) {
+            animal.hasLaidEgg = false;
+            inventory.eggs++;
+            updateInventoryUI();
+            renderAnimalsStructure();
+        }
+    }
+
+    function convertWheatToHay(index) {
+        if (inventory.wheatUsages[index] !== undefined) {
+            inventory.wheatUsages.splice(index, 1);
+            inventory.hayCount++;
+            if (selectedTool === `wheat_${index}`) selectedTool = null;
+            updateInventoryUI();
+        }
+    }
+
+    function updateHUD() {
+        document.getElementById('money-display').innerText = money;
+        document.getElementById('day-display').innerText = day;
+        document.getElementById('timer-display').innerText = dayTimer;
+        document.getElementById('tutorial-text').innerText = tutorialMessages[tutorialStep];
+
+        checkRebirthUnlock();
+        updateTextsPrices();
+
+        const chickBtn = document.getElementById('btn-buy-chick');
+        if (day >= 3) {
+            chickBtn.disabled = false;
+            chickBtn.innerText = "Comprar Pollito ($60)";
+        } else {
+            chickBtn.disabled = true;
+            chickBtn.innerText = "Comprar Pollito ($60) - Día 3+";
+        }
+
+        const expandBtn = document.getElementById('btn-expand-farm');
+        if (!hasFarmExpansion && checkExpansionUnlocked()) {
+            expandBtn.style.display = 'block';
+        } else if (!hasFarmExpansion) {
+            expandBtn.style.display = 'none';
+        }
+
+        const wheatPlotBtn = document.getElementById('btn-buy-wheat-plot');
+        if (hasFarmExpansion) {
+            wheatPlotBtn.disabled = wheatPlots.length >= maxWheatPlots;
+            wheatPlotBtn.innerText = wheatPlots.length >= maxWheatPlots ? "Parcelas de Trigo al Máximo" : "Comprar Parcela Trigo ($250)";
+        }
+
+        const workerBtn = document.getElementById('btn-buy-worker');
+        workerBtn.innerText = `👴 Contratar Desalinizador ($${workerCost})`;
+
+        updateEvaporatorText();
+        updateTutorialFocus();
+    }
+
+    function renderAnimalsStructure() {
+        const container = document.getElementById('animals-list');
+        container.innerHTML = '';
+
+        animals.forEach(animal => {
+            const card = document.createElement('div');
+            card.className = 'animal-card';
+            card.onclick = () => interactAnimal(animal.id);
+
+            let avatar = '🐔';
+            let title = 'Gallina';
+            let subtext = '';
+
+            if (animal.type === 'rooster') {
+                avatar = '🐓';
+                title = 'Gallo';
+                subtext = '<small style="color: #666; font-size:0.7em;">Fertiliza 1 huevo/día</small>';
+            } else if (animal.type === 'chick') {
+                avatar = '🐥';
+                title = 'Pollito';
+                subtext = `<small style="color: #666; font-size:0.7em;">Crece en ${2 - animal.age} día(s)</small>`;
+            } else if (animal.type === 'cow') {
+                avatar = '🐄';
+                title = 'Vaca';
+                subtext = '<small style="color: #666; font-size:0.7em;">Come Heno | Leche 25%/día</small>';
+            } else if (animal.type === 'pig') {
+                avatar = '🐖';
+                title = 'Cerdo';
+                subtext = '<small style="color: #666; font-size:0.7em;">Come Trigo o Maíz | Genera Abono x3</small>';
+            }
+
+            let produceHTML = '';
+            if (animal.type === 'hen' && animal.hasLaidEgg) {
+                produceHTML = `<div class="produce-icon" title="¡Clic para recoger huevo!">🥚</div>`;
+            } else if (animal.type === 'cow' && animal.hasMilk) {
+                produceHTML = `<div class="produce-icon" title="¡Clic para ordeñar leche!">🥛</div>`;
+            }
+
+            card.innerHTML = `
+                <div class="animal-avatar">${avatar}</div>
+                <div class="animal-info">
+                    <strong>${title}</strong>
+                    ${subtext}
+                    <div id="hunger-text-${animal.id}" style="font-size: 0.7em; margin-top:2px;">Hambre: ${Math.round(animal.hunger)}%</div>
+                    <div class="stat-bar-container">
+                        <div id="hunger-bar-${animal.id}" class="hunger-bar" style="width: ${animal.hunger}%;"></div>
+                    </div>
+                    <div id="thirst-text-${animal.id}" style="font-size: 0.7em; margin-top:2px;">Sed: ${Math.round(animal.thirst)}%</div>
+                    <div class="stat-bar-container">
+                        <div id="thirst-bar-${animal.id}" class="thirst-bar" style="width: ${animal.thirst}%;"></div>
+                    </div>
+                </div>
+                ${produceHTML}
+            `;
+
+            container.appendChild(card);
+        });
+    }
+
+    function updateInventoryUI() {
+        const list = document.getElementById('inventory-list');
+        list.innerHTML = '';
+
+        const hasCorn = inventory.cornUsages.length > 0;
+        const hasWheat = inventory.wheatUsages.length > 0;
+        const hasWater = inventory.waterUsages.length > 0;
+
+        if (inventory.cornSeeds === 0 && !hasCorn && inventory.wheatSeeds === 0 && !hasWheat && inventory.hayCount === 0 && !hasWater && inventory.eggs === 0 && inventory.milk === 0) {
+            list.innerHTML = '<p style="color: #888;">Vacío</p>';
+            return;
+        }
+
+        if (inventory.cornSeeds > 0) {
+            const item = document.createElement('div');
+            item.className = `inventory-item ${selectedTool === 'seed' ? 'selected' : ''}`;
+            item.innerHTML = `<span>🌱 Semilla de Maíz</span> <span>x${inventory.cornSeeds}</span>`;
+            item.onclick = () => selectTool('seed');
+            list.appendChild(item);
+        }
+
+        inventory.cornUsages.forEach((uses, index) => {
+            const item = document.createElement('div');
+            item.className = `inventory-item ${selectedTool === index ? 'selected' : ''}`;
+            let sellValue = uses * 10;
+            let label = cornNames[uses] || `🌽 Paquete de Maíz (${uses}u)`;
+            item.innerHTML = `
+                <span>${label}</span>
+                <button class="btn-sell" onclick="sellCorn(event, ${index})">Vender ($${sellValue})</button>
+            `;
+            item.onclick = () => selectTool(index);
+            list.appendChild(item);
+        });
+
+        if (inventory.wheatSeeds > 0) {
+            const item = document.createElement('div');
+            item.className = `inventory-item ${selectedTool === 'wheat_seed' ? 'selected' : ''}`;
+            item.innerHTML = `<span>🌾 Semilla de Trigo</span> <span>x${inventory.wheatSeeds}</span>`;
+            item.onclick = () => selectTool('wheat_seed');
+            list.appendChild(item);
+        }
+
+        inventory.wheatUsages.forEach((uses, index) => {
+            const item = document.createElement('div');
+            const toolKey = `wheat_${index}`;
+            item.className = `inventory-item ${selectedTool === toolKey ? 'selected' : ''}`;
+            let label = wheatNames[uses] || `🌾 Trigo (${uses}u)`;
+            item.innerHTML = `
+                <span>${label} <small style="color:#d81b60;">(Doble Clic ➡ Heno)</small></span>
+                <button class="btn-sell" onclick="sellWheat(event, ${index})">Vender ($${uses * 12})</button>
+            `;
+            item.onclick = () => selectTool(toolKey);
+            item.ondblclick = () => convertWheatToHay(index);
+            list.appendChild(item);
+        });
+
+        if (inventory.hayCount > 0) {
+            const item = document.createElement('div');
+            item.className = `inventory-item ${selectedTool === 'hay' ? 'selected' : ''}`;
+            item.innerHTML = `<span>🌾 Heno (Comida Vaca)</span> <span>x${inventory.hayCount}</span>`;
+            item.onclick = () => selectTool('hay');
+            list.appendChild(item);
+        }
+
+        inventory.waterUsages.forEach((uses, index) => {
+            const item = document.createElement('div');
+            const toolKey = `w_${index}`;
+            item.className = `inventory-item ${selectedTool === toolKey ? 'selected' : ''}`;
+            let label = waterNames[uses] || `🪣 Cubeta de Agua (${uses}u)`;
+            let sellPrice = (uses > 3) ? 10 : (uses * 10);
+            let sellLabel = (uses > 3) ? "Vender 1u ($10)" : `Vender ($${sellPrice})`;
+
+            item.innerHTML = `
+                <span>${label}</span>
+                <button class="btn-sell" onclick="sellWater(event, ${index})">${sellLabel}</button>
+            `;
+            item.onclick = () => selectTool(toolKey);
+            list.appendChild(item);
+        });
+
+        if (inventory.eggs > 0) {
+            const item = document.createElement('div');
+            item.className = 'inventory-item';
+            item.innerHTML = `<span>🥚 Huevo (x${inventory.eggs})</span> <button class="btn-sell" onclick="sellEgg(event)">Vender ($50)</button>`;
+            list.appendChild(item);
+        }
+
+        if (inventory.milk > 0) {
+            const item = document.createElement('div');
+            item.className = 'inventory-item';
+            item.innerHTML = `<span>🥛 Leche (x${inventory.milk})</span> <button class="btn-sell" onclick="sellMilk(event)">Vender ($200)</button>`;
+            list.appendChild(item);
+        }
+    }
+
+    function selectTool(tool) {
+        selectedTool = selectedTool === tool ? null : tool;
+        if (tutorialStep === 2 && selectedTool === 'seed') tutorialStep = 3;
+        if (tutorialStep === 9 && typeof selectedTool === 'string' && selectedTool.startsWith('w_')) tutorialStep = 10;
+        if (tutorialStep === 11 && typeof selectedTool === 'number') tutorialStep = 12;
+        updateInventoryUI();
+        updateHUD();
+    }
+
+    function sellCorn(event, index) {
+        event.stopPropagation();
+        money += getModifiedEarnings(inventory.cornUsages[index] * 10);
+        inventory.cornUsages.splice(index, 1);
+        if (selectedTool === index) selectedTool = null;
+        updateInventoryUI();
+        updateHUD();
+    }
+
+    function sellWheat(event, index) {
+        event.stopPropagation();
+        money += getModifiedEarnings(inventory.wheatUsages[index] * 12);
+        inventory.wheatUsages.splice(index, 1);
+        if (selectedTool === `wheat_${index}`) selectedTool = null;
+        updateInventoryUI();
+        updateHUD();
+    }
+
+    function sellWater(event, index) {
+        event.stopPropagation();
+        const uses = inventory.waterUsages[index];
+
+        if (uses > 3) {
+            money += getModifiedEarnings(10);
+            inventory.waterUsages[index]--;
+            if (inventory.waterUsages[index] <= 0) {
+                inventory.waterUsages.splice(index, 1);
+                if (selectedTool === `w_${index}`) selectedTool = null;
+            }
+        } else {
+            money += getModifiedEarnings(uses * 10);
+            inventory.waterUsages.splice(index, 1);
+            if (selectedTool === `w_${index}`) selectedTool = null;
+        }
+
+        updateInventoryUI();
+        updateHUD();
+    }
+
+    function sellEgg(event) {
+        event.stopPropagation();
+        if (inventory.eggs > 0) {
+            inventory.eggs--;
+            money += getModifiedEarnings(50);
+            updateInventoryUI();
+            updateHUD();
+        }
+    }
+
+    function sellMilk(event) {
+        event.stopPropagation();
+        if (inventory.milk > 0) {
+            inventory.milk--;
+            money += getModifiedEarnings(200);
+            updateInventoryUI();
+            updateHUD();
+        }
+    }
+
+    function startCornGrowth(plot) {
+        plot.state = 'growing';
+        plot.progress = 0;
+
+        plot.growInterval = setInterval(() => {
+            let increment = plot.fertilized ? 2 : 1;
+            plot.progress += increment;
+
+            if (plot.progress >= 100) {
+                plot.progress = 100;
+                plot.state = 'ready';
+                plot.fertilized = false;
+                clearInterval(plot.growInterval);
+                plot.growInterval = null;
+                if (tutorialStep === 4) tutorialStep = 5;
+                updateHUD();
+            }
+            renderPlots();
+        }, 300);
+    }
+
+    function startWheatGrowth(plot) {
+        plot.state = 'growing';
+        plot.progress = 0;
+
+        plot.growInterval = setInterval(() => {
+            let increment = plot.fertilized ? 2 : 1;
+            plot.progress += increment;
+
+            if (plot.progress >= 100) {
+                plot.progress = 100;
+                plot.state = 'ready';
+                plot.fertilized = false;
+                clearInterval(plot.growInterval);
+                plot.growInterval = null;
+                updateHUD();
+            }
+            renderPlots();
+        }, 300);
+    }
+
+    /* CORRECCIÓN EN LA RENDERIZACIÓN DE CLICS DE PARCELA */
+    function renderPlots() {
+        for (let i = 0; i < maxCornPlots; i++) {
+            const plotEl = document.getElementById(`plot-${i}`);
+            if (i < cornPlots.length) {
+                const plotData = cornPlots[i];
+                plotEl.classList.remove('empty-slot');
+                
+                if (plotData.fertilized) plotEl.classList.add('fertilized');
+                else plotEl.classList.remove('fertilized');
+
+                let fertBadge = plotData.fertilized ? `<br><small style="color:#81c784;">💩 Fertilidad (x2)</small>` : '';
+
+                if (plotData.state === 'empty') plotEl.innerHTML = `<span>Tierra Lista</span><br><small style="font-size: 0.7em;">(3 semillas maíz)</small>`;
+                else if (plotData.state === 'growing') plotEl.innerHTML = `<span class="crop-stage">🌱</span><span>Creciendo (${Math.round(plotData.progress)}%)${fertBadge}</span>`;
+                else if (plotData.state === 'ready') plotEl.innerHTML = `<span class="crop-stage">🌽</span><span>¡Recolectar!</span>`;
+                
+                plotEl.onclick = () => interactCornPlot(i);
+            }
+        }
+
+        if (hasFarmExpansion) {
+            for (let i = 0; i < maxWheatPlots; i++) {
+                const plotEl = document.getElementById(`plot-wheat-${i}`);
+                if (i < wheatPlots.length) {
+                    const plotData = wheatPlots[i];
+                    plotEl.classList.remove('empty-slot');
+                    plotEl.classList.add('wheat-plot');
+                    
+                    if (plotData.fertilized) plotEl.classList.add('fertilized');
+                    else plotEl.classList.remove('fertilized');
+
+                    let fertBadge = plotData.fertilized ? `<br><small style="color:#81c784;">💩 Fertilidad (x2)</small>` : '';
+
+                    if (plotData.state === 'empty') plotEl.innerHTML = `<span>Tierra Trigo</span><br><small style="font-size: 0.7em;">(3 semillas trigo)</small>`;
+                    else if (plotData.state === 'growing') plotEl.innerHTML = `<span class="crop-stage">🌱</span><span>Creciendo (${Math.round(plotData.progress)}%)${fertBadge}</span>`;
+                    else if (plotData.state === 'ready') plotEl.innerHTML = `<span class="crop-stage">🌾</span><span>¡Recolectar!</span>`;
+                    
+                    plotEl.onclick = () => interactWheatPlot(i);
+                }
+            }
+        }
+    }
+
+    function interactCornPlot(index) {
+        const plot = cornPlots[index];
+
+        if (plot.state === 'empty' && selectedTool === 'seed') {
+            if (inventory.cornSeeds >= 3) {
+                inventory.cornSeeds -= 3;
+                selectedTool = null;
+                if (tutorialStep === 3) tutorialStep = 4;
+
+                startCornGrowth(plot);
+                updateInventoryUI();
+                renderPlots();
+                updateHUD();
+            } else {
+                alert("¡Necesitas al menos 3 semillas de maíz para plantar!");
+            }
+        } 
+        else if (plot.state === 'ready') {
+            plot.state = 'empty';
+            inventory.cornUsages.push(3);
+            inventory.cornSeeds += 1;
+
+            if (tutorialStep === 5) tutorialStep = 6;
+
+            checkInventoryStacking();
+            updateInventoryUI();
+            renderPlots();
+            updateHUD();
+        }
+    }
+
+    /* CORRECCIÓN EN LA LÓGICA DE INTERACCIÓN DE TRIGO */
+    function interactWheatPlot(index) {
+        const plot = wheatPlots[index];
+
+        if (plot.state === 'empty' && selectedTool === 'wheat_seed') {
+            if (inventory.wheatSeeds >= 3) {
+                inventory.wheatSeeds -= 3;
+                selectedTool = null;
+
+                startWheatGrowth(plot);
+                updateInventoryUI();
+                renderPlots();
+                updateHUD();
+            } else {
+                alert("¡Necesitas al menos 3 semillas de trigo para plantar!");
+            }
+        } 
+        else if (plot.state === 'ready') {
+            plot.state = 'empty';
+            inventory.wheatUsages.push(3);
+            inventory.wheatSeeds += 1;
+
+            updateInventoryUI();
+            renderPlots();
+            updateHUD();
+        }
+    }
+
+setInterval(() => {
+    let rebirthBtn = document.getElementById('btn-rebirth');
+    if (rebirthBtn) {
+        let conditionsMet = (
+            typeof day !== 'undefined' && day >= 15 &&
+            typeof hasFarmExpansion !== 'undefined' && hasFarmExpansion &&
+            typeof autoSeedBought !== 'undefined' && autoSeedBought &&
+            typeof autoFeedBought !== 'undefined' && autoFeedBought &&
+            typeof autoHarvestBought !== 'undefined' && autoHarvestBought &&
+            typeof autoWaterBought !== 'undefined' && autoWaterBought &&
+            typeof windmillBought !== 'undefined' && windmillBought
+        );
+
+        if (conditionsMet) {
+            rebirthBtn.style.display = 'block';
+        } else {
+            rebirthBtn.style.display = 'none';
+        }
+    }
+
+    if (typeof updateTextsPrices === 'function') {
+        updateTextsPrices();
+    }
+checkInventoryStacking();
+}, 500);
+
+function saveGame() {
+    let gameState = {
+        money,
+        day,
+        dayTimer,
+        cornPlots,
+        maxCornPlots,
+        hasFarmExpansion,
+        wheatPlots,
+        maxWheatPlots,
+        autoSeedBought,
+        autoFeedBought,
+        autoHarvestBought,
+        autoWaterBought,
+        windmillBought,
+        windmillTimer,
+        inventory,
+        waterWorkers,
+        workerCost,
+        workerTimer,
+        selectedTool,
+        animals,
+        nextAnimalId,
+        tutorialStep,
+        tutorialSkipped
+    };
+
+    localStorage.setItem('farmGameState', JSON.stringify(gameState));
+}
+
+function loadGame() {
+    let savedState = localStorage.getItem('farmGameState');
+    
+    if (savedState) {
+        let data = JSON.parse(savedState);
+        
+        money = data.money ?? 500;
+        day = data.day ?? 1;
+        dayTimer = data.dayTimer ?? 120;
+        cornPlots = data.cornPlots ?? [];
+        maxCornPlots = data.maxCornPlots ?? 3;
+        hasFarmExpansion = data.hasFarmExpansion ?? false;
+        wheatPlots = data.wheatPlots ?? [];
+        maxWheatPlots = data.maxWheatPlots ?? 3;
+        autoSeedBought = data.autoSeedBought ?? false;
+        autoFeedBought = data.autoFeedBought ?? false;
+        autoHarvestBought = data.autoHarvestBought ?? false;
+        autoWaterBought = data.autoWaterBought ?? false;
+        windmillBought = data.windmillBought ?? false;
+        windmillTimer = data.windmillTimer ?? 0;
+        inventory = data.inventory ?? { cornSeeds: 0, cornUsages: [], wheatSeeds: 0, wheatUsages: [], hayCount: 0, waterUsages: [], eggs: 0, milk: 0 };
+        waterWorkers = data.waterWorkers ?? 0;
+        workerCost = data.workerCost ?? 300;
+        workerTimer = data.workerTimer ?? 0;
+        selectedTool = data.selectedTool ?? null;
+        animals = data.animals ?? [{ id: 1, type: 'hen', hunger: 100, thirst: 100, hasLaidEgg: false, age: 2 }];
+        nextAnimalId = data.nextAnimalId ?? 2;
+        tutorialStep = data.tutorialStep ?? 0;
+        tutorialSkipped = data.tutorialSkipped ?? false;
+
+        console.log("¡Partida cargada con éxito!");
+    } else {
+        console.log("No hay guardado previo. Iniciando partida nueva.");
+    }
+}
+
+loadGame();
+
+// Guarda la partida automáticamente cada 15 segundos
+setInterval(() => {
+    guardarJuego();
+}, 15000);
+
+if(rebirthLevel >= 1) {
+skipTutorial();
+}
+
+    updateHUD();
+    renderAnimalsStructure();
+</script>
+
+</body>
+</html>
