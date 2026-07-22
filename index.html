@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Granja de Supervivencia - Mid Game</title>
     <style>
-        * {
+* {
             box-sizing: border-box;
             user-select: none;
         }
@@ -15,7 +15,7 @@
             background-color: #2e7d32;
             color: #333;
             margin: 0;
-            padding: 80px 20px 20px 20px;
+            padding: 80px 10px 20px 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -91,11 +91,12 @@
         .btn-skip-tutorial:active { transform: scale(0.95); }
 
         #game-container {
-            width: 900px;
+            width: 100%;
+            max-width: 900px;
             background-color: #8d6e63;
             border: 4px solid #4e342e;
             border-radius: 12px;
-            padding: 20px;
+            padding: 15px;
             box-shadow: 0 8px 16px rgba(0,0,0,0.3);
         }
 
@@ -104,12 +105,14 @@
             justify-content: space-between;
             align-items: center;
             background-color: #fff8e1;
-            padding: 15px;
+            padding: 12px 15px;
             border-radius: 8px;
             font-weight: bold;
-            font-size: 1.1em;
+            font-size: 1.05em;
             margin-bottom: 20px;
             border: 2px solid #ffe082;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .btn-sleep {
@@ -294,6 +297,7 @@
             gap: 15px;
             align-items: center;
             justify-content: space-between;
+            flex-wrap: wrap;
         }
 
         #sea-bucket-btn {
@@ -306,6 +310,8 @@
             cursor: pointer;
             text-align: center;
             box-shadow: 0 4px 0 #01579b;
+            flex: 1;
+            min-width: 140px;
         }
 
         #sea-bucket-btn:active {
@@ -315,6 +321,7 @@
 
         #evaporator-zone {
             flex: 1;
+            min-width: 150px;
             height: 130px;
             background-color: #01579b;
             border-radius: 8px;
@@ -435,6 +442,25 @@
         }
 
         #overlay.active { opacity: 1; pointer-events: all; }
+
+        /* Media Query para pantallas móviles */
+        @media (max-width: 768px) {
+            body {
+                padding: 60px 5px 10px 5px;
+            }
+
+            #main-area {
+                flex-direction: column;
+            }
+
+            #shop-inventory {
+                grid-template-columns: 1fr;
+            }
+
+            #game-container {
+                padding: 10px;
+            }
+        }
     </style>
 </head>
 <body>
