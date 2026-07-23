@@ -554,6 +554,10 @@
 </div>
 
 <script>
+// Detección segura de dispositivo móvil
+    const isMobileDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+
     let money = 500;
     let day = 1;
     let dayTimer = 120;
@@ -612,22 +616,22 @@ let rebirthLevel = parseInt(localStorage.getItem('rebirthLevel')) || 0;
     let tutorialSkipped = false;
 
     const tutorialMessages = [
-        "⚠️ REGLA DE ORO: ¡Si un animal muere de hambre o sed, pierdes el juego! Haz clic para **Comprar una Parcela** ($200).",
-        "PASO 2: ¡Excelente! Ahora compra **Semillas de Maíz** en la Tienda ($100 / 25u).",
-        "PASO 3: Haz **clic sobre las semillas** en tu inventario para seleccionarlas.",
-        "PASO 4: Haz **clic sobre la Parcela** para plantarlas (necesitas 3 semillas).",
-        "PASO 5: **Espera a que el maíz crezca** (30s).",
-        "PASO 6: Haz **clic en la Parcela** para recolectar el maíz.",
-        "PASO 7: **¡HORA DEL AGUA!** Mantén presionado el botón azul '🌊 Mantén presionado' por 1.5s.",
-        "PASO 8: ¡Atrapa 15 nubes de vapor 💨 haciendo clic rápido sobre ellas!",
-        "PASO 9: Haz clic en la **Gota de Agua 💧** para guardarla en tu inventario.",
-        "PASO 10: Haz **clic en el Agua Dulce** en tu inventario para seleccionarla.",
-        "PASO 11: Ahora haz **clic sobre la Gallina** en el Corral para darle de beber.",
-        "PASO 12: Haz **clic en el Maíz Entero 🌽** de tu inventario para seleccionarlo.",
-        "PASO 13: Haz **clic sobre la Gallina** para darle de comer y llenar su barra de hambre.",
-        "PASO 14: Usa el botón **Dormir (Skip Day)** para saltar la noche de forma segura.",
-        "🎉 ¡Tutorial completado! Recuerda: junta 3 parcelas de maíz, 2 gallinas y 1 gallo para **DESBLOQUEAR LA EXPANSIÓN MID-GAME**."
-    ];
+    "⚠️ REGLA DE ORO: ¡Si un animal muere de hambre o sed, pierdes el juego! Haz clic para **Comprar una Parcela** ($200).",
+    "PASO 2: ¡Excelente! Ahora compra **Semillas de Maíz** en la Tienda ($100 / 25u).",
+    "PASO 3: Haz **clic sobre las semillas** en tu inventario para seleccionarlas.",
+    "PASO 4: Haz **clic sobre la Parcela** para plantarlas (necesitas 3 semillas).",
+    "PASO 5: **Espera a que el maíz crezca** (30s).",
+    "PASO 6: Haz **clic en la Parcela** para recolectar el maíz.",
+    "PASO 7: **¡HORA DEL AGUA!** Mantén presionado el botón azul '🌊 Mantén presionado' por 1.5s.",
+    isMobileDevice ? "PASO 8: ¡Mantén presionado mientras persigues con tu dedo a las nubes de vapor 💨!" : "PASO 8: ¡Atrapa 15 nubes de vapor 💨 haciendo clic rápido sobre ellas!",
+    "PASO 9: Haz clic en la **Gota de Agua 💧** para guardarla en tu inventario.",
+    "PASO 10: Haz **clic en el Agua Dulce** en tu inventario para seleccionarla.",
+    "PASO 11: Ahora haz **clic sobre la Gallina** en el Corral para darle de beber.",
+    "PASO 12: Haz **clic en el Maíz Entero 🌽** de tu inventario para seleccionarlo.",
+    "PASO 13: Haz **clic sobre la Gallina** para darle de comer y llenar su barra de hambre.",
+    "PASO 14: Usa el botón **Dormir (Skip Day)** para saltar la noche de forma segura.",
+    "🎉 ¡Tutorial completado! Recuerda: junta 3 parcelas de maíz, 2 gallinas y 1 gallo para **DESBLOQUEAR LA EXPANSIÓN MID-GAME**."
+];
 
 function updateTextsPrices() {
     // Busca todos los elementos que tengan la clase "precio"
@@ -1116,27 +1120,76 @@ function startCollectingSeaWater(e) {
 
     function spawnSteamCloud() {
         const zone = document.getElementById('evaporator-zone');
+        if (!zone) return;
+
         const steam = document.createElement('div');
         steam.className = 'steam-cloud';
         steam.innerText = '💨';
-        steam.style.left = `${Math.random() * 75 + 10}%`;
+
+        // Posición horizontal inicial aleatoria (entre 10% y 85%)
+        const startX = Math.random() * 75 + 10;
+        steam.style.left = `${startX}%`;
+        steam.style.position = 'absolute';
+        steam.style.cursor = 'pointer';
+        steam.style.touchAction = 'none'; // Evita gestos por defecto del navegador en móviles
+
+        // Si es móvil, aumentamos el reto: se mueven más rápido y se desplazan a los lados
+        const speedMultiplier = isMobileDevice ? 1.5 : 1.0;
+        const horizontalDrift = isMobileDevice ? (Math.random() - 0.5) * 80 : 0; // Desplazamiento lateral en px
+
+        let cloudHoldTimer = null;
+        let isCaptured = false;
 
         steam.onpointerdown = (e) => {
             e.stopPropagation();
-            steam.remove();
-            caughtClouds++;
-            updateQuestUI();
-            if (caughtClouds >= TARGET_CLOUDS) completeQuestSuccess();
+            if (isCaptured) return;
+
+            steam.innerText = '⏳'; // Feedback visual de que se está manteniendo
+
+            // En móvil exigimos mantener el dedo un instante siguiendo la nube
+            const holdTime = isMobileDevice ? 500 : 150;
+
+            cloudHoldTimer = setTimeout(() => {
+                isCaptured = true;
+                if (steam.parentNode) steam.remove();
+                caughtClouds++;
+                updateQuestUI();
+                if (caughtClouds >= TARGET_CLOUDS) completeQuestSuccess();
+            }, holdTime);
         };
 
-        steam.addEventListener('animationend', () => {
+        const cancelHold = () => {
+            if (cloudHoldTimer && !isCaptured) {
+                clearTimeout(cloudHoldTimer);
+                cloudHoldTimer = null;
+                steam.innerText = '💨';
+            }
+        };
+
+        steam.onpointerup = cancelHold;
+        steam.onpointercancel = cancelHold;
+        steam.onpointerleave = cancelHold;
+
+        // Animación de ascenso y movimiento lateral
+        setTimeout(() => {
             if (steam.parentNode) {
+                steam.style.transition = `transform ${2.5 / speedMultiplier}s ease-out, opacity ${2.5 / speedMultiplier}s ease-out`;
+                steam.style.transform = `translate(${horizontalDrift}px, -220px)`;
+            }
+        }, 50);
+
+        // Control de tiempo límite si la nube se escapa
+        const escapeTimeout = setTimeout(() => {
+            if (steam.parentNode && !isCaptured) {
                 steam.remove();
                 missedClouds++;
                 updateQuestUI();
                 if (missedClouds >= MAX_MISSED) failQuest();
             }
-        });
+        }, (2800 / speedMultiplier));
+
+        // Limpiamos el timeout de escape si la nube es destruida antes
+        steam.addEventListener('remove', () => clearTimeout(escapeTimeout));
 
         zone.appendChild(steam);
     }
