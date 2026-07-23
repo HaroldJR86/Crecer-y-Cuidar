@@ -506,13 +506,18 @@
     </div>
 
     <div id="sea-section">
-        <div id="sea-bucket-btn" onmousedown="startCollectingSeaWater()" onmouseup="stopCollectingSeaWater()" onmouseleave="stopCollectingSeaWater()">
-            🌊 Mantén presionado<br><small id="sea-status">para Cargar Agua Salada</small>
-        </div>
-        <div id="evaporator-zone">
-            <span id="evaporator-status" style="opacity: 0.8; font-size: 0.9em;">Estación de Desalinización</span>
-        </div>
+    <div id="sea-bucket-btn" 
+        onpointerdown="startCollectingSeaWater(event)" 
+        onpointerup="stopCollectingSeaWater(event)" 
+        onpointercancel="stopCollectingSeaWater(event)"
+        onpointerleave="stopCollectingSeaWater(event)"
+        style="touch-action: manipulation; cursor: pointer;">
+        🌊 Mantén presionado<br><small id="sea-status">para Cargar Agua Salada</small>
     </div>
+    <div id="evaporator-zone">
+        <span id="evaporator-status" style="opacity: 0.8; font-size: 0.9em;">Estación de Desalinización</span>
+    </div>
+</div>
 
 <div id="shop-inventory">
         <div class="panel">
@@ -1055,23 +1060,37 @@ function hacerRebirth() {
     const TARGET_CLOUDS = 15;
     const MAX_MISSED = 3;
 
-    function startCollectingSeaWater() {
+function startCollectingSeaWater(e) {
+        // En móviles, permitimos que el navegador maneje el evento sin cancelarlo agresivamente para evitar bloqueos
         if (isEvaporating) return;
-        document.getElementById('sea-status').innerText = "Cargando cubeta... (mantén)";
         
-        seaHoldTimer = setTimeout(() => {
-            document.getElementById('sea-status').innerText = "¡Cubeta cargada!";
-            if (tutorialStep === 6) tutorialStep = 7;
-            updateHUD();
-            startSteamQuest();
-        }, 1500);
-    }
-
-    function stopCollectingSeaWater() {
+        // Limpiamos cualquier temporizador previo
         if (seaHoldTimer) {
             clearTimeout(seaHoldTimer);
             seaHoldTimer = null;
-            if (!isEvaporating) document.getElementById('sea-status').innerText = "para Cargar Agua Salada";
+        }
+
+        const statusEl = document.getElementById('sea-status');
+        if (statusEl) statusEl.innerText = "Cargando cubeta... (mantén)";
+        
+        seaHoldTimer = setTimeout(() => {
+            const currentStatus = document.getElementById('sea-status');
+            if (currentStatus) currentStatus.innerText = "¡Cubeta cargada!";
+            if (tutorialStep === 6) tutorialStep = 7;
+            updateHUD();
+            startSteamQuest();
+            seaHoldTimer = null;
+        }, 1500);
+    }
+
+    function stopCollectingSeaWater(e) {
+        if (seaHoldTimer) {
+            clearTimeout(seaHoldTimer);
+            seaHoldTimer = null;
+            if (!isEvaporating) {
+                const statusEl = document.getElementById('sea-status');
+                if (statusEl) statusEl.innerText = "para Cargar Agua Salada";
+            }
         }
     }
 
