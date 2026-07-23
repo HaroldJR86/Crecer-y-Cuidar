@@ -703,6 +703,8 @@ function hacerRebirth() {
         let currentRebirths = parseInt(localStorage.getItem('rebirthLevel')) || 0;
         localStorage.setItem('rebirthLevel', currentRebirths + 1);
 
+        localStorage.removeItem('farmGameState');
+
         alert("¡Rebirth exitoso! Tu granja asciende de nivel.");
         location.reload(); // Recarga la página para aplicar los cambios de golpe
     } else {
