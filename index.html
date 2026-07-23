@@ -1147,7 +1147,7 @@ function startCollectingSeaWater(e) {
             steam.innerText = '⏳'; // Feedback visual de que se está manteniendo
 
             // En móvil exigimos mantener el dedo un instante siguiendo la nube
-            const holdTime = isMobileDevice ? 500 : 150;
+            const holdTime = isMobileDevice ? 500 : 0;
 
             cloudHoldTimer = setTimeout(() => {
                 isCaptured = true;
@@ -1219,10 +1219,23 @@ function startCollectingSeaWater(e) {
         zone.appendChild(drop);
     }
 
-    function failQuest() {
+function failQuest() {
         clearInterval(steamQuestTimer);
         steamQuestTimer = null;
-        resetEvaporator("❌ ¡Fallaste! Demasiado vapor escapó.");
+        
+        const zone = document.getElementById('evaporator-zone');
+        if (zone) zone.innerHTML = '';
+
+        if (tutorialStep === 7 || tutorialStep === 8) {
+            tutorialStep = 6;
+            if (typeof updateTutorial === 'function') {
+                updateTutorial();
+            } else if (typeof checkTutorial === 'function') {
+                checkTutorial();
+            }
+        }
+        
+        resetEvaporator("❌ ¡Fallaste! Demasiado vapor escapó. ¡Vuelve a llenar el cubo!");
     }
 
     function resetEvaporator(msg) {
@@ -1997,7 +2010,7 @@ loadGame();
 
 // Guarda la partida automáticamente cada 15 segundos
 setInterval(() => {
-    guardarJuego();
+    saveGame();
 }, 15000);
 
 if(rebirthLevel >= 1) {
